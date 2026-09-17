@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#12141A">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text x=%220%22 y=%2213%22 font-size=%2213%22>%F0%9F%A7%BE</text></svg>">
+<title>The Wishlist Ledger</title>
+<script>
+  if (localStorage.getItem('wishlist-ledger-theme') === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --ink: #12141A;
+    --surface: #1B1E26;
+    --surface-2: #21242E;
+    --paper: #EDEAE2;
+    --fog: #8A8F9C;
+    --brass: #C9A24B;
+    --sage: #6FA787;
+    --amber: #C08A4E;
+    --rust: #A85647;
+    --hairline: rgba(237,234,226,0.12);
+    --neutral-fill: rgba(237,234,226,0.4);
+    --ring-badge-bg: rgba(18,20,26,0.72);
+  }
+
+  [data-theme="light"] {
+    --ink: #F5F3EE;
+    --surface: #EAE7DE;
+    --surface-2: #DFDBCE;
+    --paper: #1C1E24;
+    --fog: #6B6F7A;
+    --brass: #9C6B26;
+    --sage: #3F7A57;
+    --amber: #96602A;
+    --rust: #8B4030;
+    --hairline: rgba(28,30,36,0.14);
+    --neutral-fill: rgba(28,30,36,0.32);
+    --ring-badge-bg: rgba(245,243,238,0.82);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Archivo', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+
+  a { color: var(--paper); }
+
+  button, select {
+    font-family: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Masthead */
+
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 48px 0 28px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .masthead-top h1 {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 560;
+    font-size: clamp(2rem, 4.5vw, 2.75rem);
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    color: var(--paper);
+  }
+
+  .subhead {
+    font-size: 0.95rem;
+    color: var(--fog);
+    margin: 0;
+    max-width: 44ch;
+  }
+
+  .masthead-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .totals {
+    display: flex;
+    gap: 22px;
+  }
+
+  .stat { text-align: right; }
+
+  .stat-label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--fog);
+    margin-bottom: 2px;
+  }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value--brass {
+    font-size: 1.4rem;
+    color: var(--brass);
+  }
+
+  .income-line {
+    font-size: 0.8rem;
+    color: var(--fog);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .income-line #incomeReadout {
+    color: var(--paper);
+    font-family: 'Space Mono', monospace;
+  }
+
+  #incomeInput {
+    width: 84px;
+    background: var(--surface);
+    color: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    text-align: right;
+  }
+
+  .afford-block {
+    padding: 20px 0 24px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .afford-headline {
+    margin: 0 0 14px;
+    font-size: 0.95rem;
+    color: var(--paper);
+    max-width: 56ch;
+  }
+
+  .afford-headline #requiredIncome {
+    font-family: 'Space Mono', monospace;
+    color: var(--brass);
+  }
+
+  .afford-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--hairline);
+    margin-bottom: 16px;
+  }
+
+  .afford-seg { display: block; height: 100%; }
+  .afford-seg--needs { width: 50%; background: var(--fog); opacity: 0.55; }
+  .afford-seg--wants { width: 30%; background: var(--brass); }
+  .afford-seg--savings { width: 20%; background: var(--sage); }
+
+  .stat-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  .stat--needs .stat-dot { background: var(--fog); }
+  .stat--wants .stat-dot { background: var(--brass); }
+  .stat--savings .stat-dot { background: var(--sage); }
+
+  .afford-stats {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 14px;
+  }
+
+  .afford-stats .stat { text-align: left; }
+
+  .afford-note {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--fog);
+    max-width: 62ch;
+  }
+
+  .sort-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sort-control label {
+    font-size: 0.82rem;
+    color: var(--fog);
+  }
+
+  .sort-control select {
+    background: var(--surface);
+    color: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  #sortDir {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  #sortDir:hover { background: var(--surface-2); }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .view-btn {
+    all: unset;
+    cursor: pointer;
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    color: var(--fog);
+    border-radius: 6px;
+  }
+
+  .view-btn.is-active {
+    background: var(--surface-2);
+    color: var(--paper);
+  }
+
+  .theme-btn {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--paper);
+  }
+
+  .theme-btn:hover { background: var(--surface-2); }
+
+  /* Ledger */
+
+  .ledger {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .row {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .row:first-child {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .row-toggle {
+    all: unset;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    padding: 18px 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .row-rank {
+    flex: 0 0 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--fog);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .thumb {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .thumb svg {
+    width: 28px;
+    height: 28px;
+    color: var(--fog);
+    display: none;
+  }
+
+  .thumb.icon-only svg { display: block; }
+  .thumb.img-failed img { display: none; }
+  .thumb.img-failed svg { display: block; }
+
+  .row-main {
+    flex: 1 1 180px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .row-name {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--paper);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-blurb {
+    font-size: 0.8rem;
+    color: var(--fog);
+  }
+
+  .row-ring {
+    flex: 0 0 auto;
+    position: relative;
+    width: 60px;
+    height: 60px;
+  }
+
+  .ring { width: 60px; height: 60px; display: block; }
+  .ring-track { fill: none; stroke: var(--hairline); stroke-width: 6; }
+  .ring-value {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.8s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--paper);
+  }
+
+  .row-price {
+    flex: 0 0 auto;
+    margin-left: 4px;
+    text-align: right;
+    min-width: 104px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .price-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.98rem;
+    color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .price-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--fog);
+  }
+
+  .row-chevron {
+    flex: 0 0 20px;
+    text-align: center;
+    color: var(--fog);
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+  }
+
+  .row-toggle[aria-expanded="true"] .row-chevron { transform: rotate(45deg); }
+
+  .row-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+    padding: 0 4px;
+  }
+
+  .row-toggle[aria-expanded="true"] + .row-panel {
+    max-height: 420px;
+    padding-bottom: 22px;
+  }
+
+  .row-why {
+    font-size: 0.9rem;
+    color: var(--paper);
+    margin: 10px 0 16px;
+    max-width: 54ch;
+  }
+
+  .metric-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 16px;
+  }
+
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .metric-label {
+    flex: 0 0 78px;
+    font-size: 0.78rem;
+    color: var(--fog);
+  }
+
+  .bar {
+    flex: 1 1 auto;
+    height: 6px;
+    background: var(--hairline);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar i {
+    display: block;
+    height: 100%;
+    background: var(--neutral-fill);
+    border-radius: 3px;
+  }
+
+  .metric-flex .bar i { background: var(--brass); }
+
+  .metric-value {
+    flex: 0 0 26px;
+    text-align: right;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--fog);
+  }
+
+  .extra-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 14px;
+  }
+
+  .extra-stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .extra-stats span {
+    font-size: 0.72rem;
+    color: var(--fog);
+  }
+
+  .extra-stats b {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--paper);
+    font-weight: 400;
+  }
+
+  .row-source {
+    font-size: 0.72rem;
+    color: var(--fog);
+    margin: 0;
+  }
+
+  .fineprint {
+    padding: 28px 0 40px;
+    border-top: 1px solid var(--hairline);
+    margin-top: 8px;
+  }
+
+  .fineprint p {
+    font-size: 0.78rem;
+    color: var(--fog);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .masthead { flex-direction: column; align-items: flex-start; }
+    .masthead-stats { align-items: flex-start; width: 100%; }
+    .totals { flex-wrap: wrap; gap: 16px; }
+    .stat { text-align: left; }
+    .row-rank { display: none; }
+
+    .row-toggle {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      grid-template-areas:
+        "thumb name chevron"
+        "ring  price price";
+      row-gap: 10px;
+      column-gap: 14px;
+      align-items: center;
+    }
+    .thumb { grid-area: thumb; width: 56px; height: 56px; }
+    .row-main { grid-area: name; }
+    .row-chevron { grid-area: chevron; }
+    .row-ring, .row-ring .ring { grid-area: ring; width: 52px; height: 52px; }
+    .row-price {
+      grid-area: price;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 12px;
+      text-align: left;
+      margin-left: 0;
+    }
+  }
+
+  /* Grid view: same rows, same data, restyled. Overrides list and mobile-list rules above
+     by specificity (two classes beat one), so no view-specific markup is needed. */
+
+  .ledger.view-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--hairline);
+    border: none;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .ledger.view-grid .row { border: none; }
+
+  .ledger.view-grid .row-toggle {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 0 10px;
+    background: var(--ink);
+    cursor: default;
+    height: 100%;
+  }
+
+  .ledger.view-grid .thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 0;
+    flex: none;
+  }
+
+  .ledger.view-grid .row-main {
+    flex: none;
+    padding: 10px 10px 2px;
+  }
+
+  .ledger.view-grid .row-name {
+    font-size: 0.92rem;
+    white-space: normal;
+  }
+
+  .ledger.view-grid .row-blurb { display: none; }
+
+  .ledger.view-grid .row-ring {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+    background: var(--ring-badge-bg);
+    border-radius: 50%;
+  }
+
+  .ledger.view-grid .row-ring .ring { width: 40px; height: 40px; }
+  .ledger.view-grid .ring-label { font-size: 0.66rem; }
+
+  .ledger.view-grid .row-price {
+    flex: none;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-left: 0;
+    padding: 4px 10px 0;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .ledger.view-grid .price-sub { display: none; }
+  .ledger.view-grid .row-chevron { display: none; }
+  .ledger.view-grid .row-rank { display: none; }
+  .ledger.view-grid .row-panel { display: none !important; }
+
+  @media (max-width: 600px) {
+    .ledger.view-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="masthead">
+    <div class="masthead-top">
+      <h1>The Wishlist Ledger</h1>
+      <p class="subhead">21 non-essentials, ranked by whether they're worth the money.</p>
+    </div>
+    <div class="masthead-stats">
+      <div class="totals">
+        <div class="stat">
+          <span class="stat-label">Total damage</span>
+          <span class="stat-value stat-value--brass" id="totalDamage">₹0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Per month</span>
+          <span class="stat-value" id="totalPerMonth">₹0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Per day</span>
+          <span class="stat-value" id="totalPerDay">₹0</span>
+        </div>
+      </div>
+      <div class="income-line">
+        <span id="incomeReadout">0 yrs 0 mo</span> of
+        <input type="number" id="incomeInput" min="1" step="1000" aria-label="Monthly income">
+        <span>/mo income</span>
+      </div>
+      <div class="controls-row">
+        <div class="view-toggle" role="group" aria-label="View">
+          <button type="button" class="view-btn is-active" data-view="list">List</button>
+          <button type="button" class="view-btn" data-view="grid">Grid</button>
+        </div>
+        <div class="sort-control">
+          <label for="sortSelect">Sort by</label>
+          <select id="sortSelect">
+            <option value="worth">Worth it</option>
+            <option value="price">Price</option>
+            <option value="daily">Daily use</option>
+            <option value="flex">Flex</option>
+            <option value="joy">Joy</option>
+            <option value="longevity">Longevity</option>
+            <option value="costPerYear">Cost per year</option>
+            <option value="perJoyPoint">Per joy point</option>
+          </select>
+          <button id="sortDir" type="button" aria-label="Sorted highest to lowest">↓</button>
+        </div>
+        <button id="themeToggle" type="button" class="theme-btn" aria-label="Switch to light theme">☾</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="afford-block">
+    <p class="afford-headline">To make this list a sane 30% of a budget, not the whole thing,
+      you would need to earn <span id="requiredIncome">₹0</span> a month.</p>
+    <div class="afford-bar" role="img" aria-label="Budget split: 50 percent needs, 30 percent this list, 20 percent savings">
+      <span class="afford-seg afford-seg--needs"></span>
+      <span class="afford-seg afford-seg--wants"></span>
+      <span class="afford-seg afford-seg--savings"></span>
+    </div>
+    <div class="afford-stats">
+      <div class="stat stat--needs"><span class="stat-label"><i class="stat-dot"></i>Needs, 50%</span><span class="stat-value" id="affordNeeds">₹0</span></div>
+      <div class="stat stat--wants"><span class="stat-label"><i class="stat-dot"></i>This list, 30%</span><span class="stat-value" id="affordWants">₹0</span></div>
+      <div class="stat stat--savings"><span class="stat-label"><i class="stat-dot"></i>Savings, 20%</span><span class="stat-value" id="affordSavings">₹0</span></div>
+    </div>
+    <p class="afford-note">Needs covers rent, food, insurance and bills. Savings covers
+      investing and a cushion for a bad month. The 50/30/20 split is a standard budgeting rule,
+      not advice tailored to you.</p>
+  </section>
+
+  <ol class="ledger view-list" id="ledger"></ol>
+
+  <footer class="fineprint">
+    <p>Prices checked 17 Sep 2026 against Apple India, Sony India and retail listings. Everything past the price is a made-up score, not financial advice.</p>
+  </footer>
+</div>
+
+<script>
+  const ICONS = {
+    controller: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18h20a8 8 0 0 1 8 8v3a6 6 0 0 1-6 6c-2 0-3.2-1.1-4-3l-.6-1.4a3 3 0 0 0-2.8-1.6h-7.2a3 3 0 0 0-2.8 1.6L18 32c-.8 1.9-2 3-4 3a6 6 0 0 1-6-6v-3a8 8 0 0 1 8-8Z"/><path d="M18 23v5M15.5 25.5h5"/><circle cx="34" cy="23" r="1.4" fill="currentColor" stroke="none"/><circle cx="30.5" cy="26.5" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+    headphones: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 27v-3a15 15 0 0 1 30 0v3"/><rect x="5" y="25" width="9" height="13" rx="3.5"/><rect x="34" y="25" width="9" height="13" rx="3.5"/></svg>`,
+    earbuds: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="16" cy="19" rx="5.5" ry="7.5"/><path d="M13.5 25.5V36a3.5 3.5 0 0 0 3.5 3.5"/><ellipse cx="32" cy="19" rx="5.5" ry="7.5"/><path d="M34.5 25.5V36A3.5 3.5 0 0 1 31 39.5"/></svg>`,
+    phone: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="5" width="20" height="38" rx="4.5"/><path d="M20.5 9.5h7"/></svg>`,
+    tv: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="38" height="23" rx="2.5"/><path d="M17 40h14"/></svg>`,
+    tablet: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="5" width="30" height="38" rx="4.5"/><circle cx="24" cy="36.5" r="1.3" fill="currentColor" stroke="none"/></svg>`,
+    camera: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="14" width="36" height="24" rx="4"/><path d="M17 14l3-5h8l3 5"/><circle cx="24" cy="26" r="7"/></svg>`,
+    mic: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="6" width="12" height="22" rx="6"/><path d="M13 22v3a11 11 0 0 0 22 0v-3"/><path d="M24 36v6M18 42h12"/></svg>`,
+    gimbal: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20V8M18 8h12"/><circle cx="24" cy="26" r="8"/><rect x="19" y="34" width="10" height="8" rx="2"/></svg>`,
+    watch: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="10" width="20" height="28" rx="6"/><path d="M19 10V6h10v4M19 42v-4h10v4"/><path d="M34 18h3M34 24h4"/></svg>`,
+    dock: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 38h28"/><rect x="16" y="10" width="16" height="22" rx="3"/><circle cx="24" cy="21" r="4"/></svg>`,
+    coffee: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="32" height="14" rx="2"/><path d="M16 22v4a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-4"/><rect x="18" y="34" width="12" height="8" rx="1"/></svg>`,
+    fridge: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="32" height="36" rx="3"/><path d="M24 6v36"/><path d="M14 13v4M28 13v4"/></svg>`,
+    ac: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="16" width="38" height="14" rx="5"/><path d="M12 30l-2 6M36 30l2 6M24 30v6"/></svg>`,
+    treadmill: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 34h30l6-6"/><rect x="8" y="30" width="24" height="4" rx="1"/><path d="M34 30V14a4 4 0 0 1 4-4h2"/></svg>`,
+    guitar: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M28 6l10 10-3 3-10-10z"/><path d="M35 13l4 4"/><circle cx="18" cy="30" r="10"/><circle cx="18" cy="30" r="4"/></svg>`,
+    drums: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="24" cy="30" rx="14" ry="6"/><path d="M10 30V20a14 6 0 0 1 28 0v10"/><path d="M8 14l8 4M40 14l-8 4"/></svg>`,
+    turntable: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="10" width="36" height="28" rx="3"/><circle cx="18" cy="24" r="9"/><circle cx="18" cy="24" r="1.5" fill="currentColor" stroke="none"/><path d="M30 14l6 4-10 8"/></svg>`,
+    speaker: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="12" width="36" height="24" rx="4"/><circle cx="17" cy="24" r="6"/><circle cx="31" cy="24" r="6"/></svg>`,
+  };
+
+  const BAND_VAR = { high: '--sage', mid: '--amber', low: '--rust' };
+
+  function bandColor(band) {
+    return getComputedStyle(document.documentElement).getPropertyValue(BAND_VAR[band]).trim();
+  }
+  const MAX_LONGEVITY = 6;
+
+  const ITEMS = [
+    {
+      id: 'iphone',
+      name: 'iPhone 17 Pro Max',
+      blurb: '256GB',
+      price: 149900,
+      dailyUse: 98,
+      flex: 85,
+      longevity: 3,
+      joy: 70,
+      why: 'Highest daily-use score here. Replaces a device you already touch all day.',
+      source: 'Apple India, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/mobile/0/p/g/-enriched-transparent-2-original-imahft6cfwg6yta2.png?q=90',
+      icon: 'phone',
+    },
+    {
+      id: 'airpods',
+      name: 'AirPods Pro 3',
+      blurb: 'USB-C case',
+      price: 25900,
+      dailyUse: 90,
+      flex: 55,
+      longevity: 3,
+      joy: 65,
+      why: "High daily use, short battery life. You'll be buying these again in 3 years.",
+      source: 'Apple India, MRP',
+      img: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/AirPods_Pro_3_with_case.jpg/330px-AirPods_Pro_3_with_case.jpg',
+      icon: 'earbuds',
+    },
+    {
+      id: 'sony-headphones',
+      name: 'Sony WH-1000XM6',
+      blurb: 'Over-ear, noise cancelling',
+      price: 49990,
+      dailyUse: 70,
+      flex: 35,
+      longevity: 5,
+      joy: 75,
+      why: 'High joy score, and the battery outlasts any earbud here by two years.',
+      source: 'Sony India, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/headphone/v/w/4/-original-imahq4g6z8ghgzh2.jpeg?q=90',
+      icon: 'headphones',
+    },
+    {
+      id: 'ps5',
+      name: 'PlayStation 5',
+      blurb: 'Slim, disc, 1TB',
+      price: 54990,
+      dailyUse: 45,
+      flex: 40,
+      longevity: 6,
+      joy: 80,
+      why: "High joy per session, low frequency. Most nights you're already gaming on the laptop.",
+      source: 'Retail listings, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/gamingconsole/1/v/t/-enriched-transparent-original-imahhy4gcr7ebcvy.png?q=90',
+      icon: 'controller',
+    },
+    {
+      id: 'ipad',
+      name: 'iPad Pro',
+      blurb: 'M5, 11-inch, 256GB, Wi-Fi',
+      price: 139900,
+      dailyUse: 50,
+      flex: 60,
+      longevity: 4,
+      joy: 60,
+      why: 'A second screen next to a laptop you already own. Only scores well if the pencil gets used.',
+      source: 'Apple India',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/tablet/1/7/8/-original-imahgwzqxhrvgngk.jpeg?q=90',
+      icon: 'tablet',
+    },
+    {
+      id: 'appletv',
+      name: 'Apple TV 4K',
+      blurb: '64GB, Wi-Fi',
+      price: 25900,
+      dailyUse: 40,
+      flex: 10,
+      longevity: 5,
+      joy: 45,
+      why: 'Redundant with the HDMI-to-TV plan that already covers this for free.',
+      source: 'Apple India',
+      img: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Apple_TV_4K_%283rd_Generation%2C_2022%29_with_Siri_Remote_%28cropped%29.jpg/330px-Apple_TV_4K_%283rd_Generation%2C_2022%29_with_Siri_Remote_%28cropped%29.jpg',
+      icon: 'tv',
+    },
+    {
+      id: 'samsung-tv',
+      name: 'Samsung QLED TV',
+      blurb: '55-inch, Q8F tier, QLED 4K',
+      price: 59990,
+      dailyUse: 65,
+      flex: 45,
+      longevity: 6,
+      joy: 60,
+      why: 'A real upgrade to a screen you already use every day, not a new capability like the phone is.',
+      source: 'Retail listings, Q8F tier',
+      img: null,
+      icon: 'tv',
+    },
+    {
+      id: 'sony-a7v',
+      name: 'Sony A7 V',
+      blurb: 'Body only, E-mount',
+      price: 240990,
+      dailyUse: 35,
+      flex: 60,
+      longevity: 6,
+      joy: 75,
+      why: 'Matches your own rule: future-proofing you 5 to 7 years is worth the price. Low daily use, high creative joy.',
+      source: 'Retail listings',
+      img: null,
+      icon: 'camera',
+    },
+    {
+      id: 'rode-wireless',
+      name: 'RODE Wireless GO II',
+      blurb: 'Dual channel, USB-C',
+      price: 24999,
+      dailyUse: 30,
+      flex: 30,
+      longevity: 6,
+      joy: 50,
+      why: 'Only pays off if the content creation habit is actually running. Clean audio, not daily gear.',
+      source: 'Retail listings',
+      img: 'https://rukminim2.flixcart.com/image/480/480/xif0q/microphone/h/y/w/wireless-go-ii-dual-channel-wireless-microphone-system-black-original-imah5pb2mf6tgtgc.jpeg?q=90',
+      icon: 'mic',
+    },
+    {
+      id: 'dji-om7',
+      name: 'DJI Osmo Mobile 7',
+      blurb: '3-axis, latest model (there is no "8" yet)',
+      price: 10990,
+      dailyUse: 25,
+      flex: 20,
+      longevity: 5,
+      joy: 55,
+      why: 'Lowest score here. Used only on actual shoot days, easiest to skip.',
+      source: 'Flipkart, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/gimbal/v/p/t/-enriched-transparent-original-imah9ya5zhjvdz7w.png',
+      icon: 'gimbal',
+    },
+    {
+      id: 'watch-ultra',
+      name: 'Apple Watch Ultra 3',
+      blurb: '49mm, Titanium, GPS + Cellular',
+      price: 89900,
+      dailyUse: 80,
+      flex: 70,
+      longevity: 3,
+      joy: 55,
+      why: 'Worn as often as the phone, replaced almost as often. High use, short realistic lifespan.',
+      source: 'Apple India',
+      img: 'https://rukminim2.flixcart.com/image/480/640/xif0q/smartwatch/n/j/p/-original-imahftggkzkzhszr.jpeg?q=90',
+      icon: 'watch',
+    },
+    {
+      id: 'dailyobjects-node',
+      name: 'DailyObjects Node',
+      blurb: '3-in-1 dock, watch stand, phone stand, disk, lamp',
+      price: 21995,
+      dailyUse: 85,
+      flex: 50,
+      longevity: 6,
+      joy: 55,
+      why: "Touched every single day for a fraction of the iPhone's price. Best cost per use on this list.",
+      source: 'DailyObjects, full bundle',
+      img: 'https://images.dailyobjects.com/marche/product-images/1809/node-3-in-1-wireless-charging-dock-images/Node-3-in-1-Wireless-Charging-Dock-vw.png',
+      icon: 'dock',
+    },
+    {
+      id: 'airpods-max',
+      name: 'AirPods Max 2',
+      blurb: 'USB-C, H2 chip',
+      price: 74900,
+      dailyUse: 65,
+      flex: 75,
+      longevity: 5,
+      joy: 68,
+      why: 'High flex score. Redundant with the Sony pair above if you end up owning both.',
+      source: 'Apple India',
+      img: null,
+      icon: 'headphones',
+    },
+    {
+      id: 'samsung-fridge',
+      name: 'Samsung Double Door Fridge',
+      blurb: '301L, frost free, 3 star',
+      price: 54990,
+      dailyUse: 95,
+      flex: 15,
+      longevity: 6,
+      joy: 60,
+      why: 'Unlocks the double-door freezer that shelved the ice cream maker plan. Used more than anything else here.',
+      source: 'Samsung India, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/refrigerator-new/d/g/v/-original-imah4zqzpmzaht4s.jpeg?q=90',
+      icon: 'fridge',
+    },
+    {
+      id: 'samsung-ac',
+      name: 'Samsung WindFree AC',
+      blurb: '1.5 ton, 5 star, Alexa via SmartThings',
+      price: 84790,
+      dailyUse: 55,
+      flex: 10,
+      longevity: 6,
+      joy: 45,
+      why: 'Comfort, not status. Alexa control is the only reason this beats a cheaper split AC.',
+      source: 'Samsung India, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/air-conditioner-new/h/h/m/yes-ar60f19d1zw-ar60f19d1zwnna-ar60f19d1zwxna-1-5-2025-split-original-imahh5pzwktxx5gd.jpeg?q=90',
+      icon: 'ac',
+    },
+    {
+      id: 'breville-coffee',
+      name: 'Breville Barista Express',
+      blurb: 'Semi-automatic, built-in grinder',
+      price: 88200,
+      dailyUse: 50,
+      flex: 35,
+      longevity: 5,
+      joy: 65,
+      why: 'Only worth it if the daily habit sticks, same bet as the mic and gimbal above.',
+      source: 'Retail listings, import',
+      img: null,
+      icon: 'coffee',
+    },
+    {
+      id: 'treadmill',
+      name: 'Home Treadmill',
+      blurb: 'BLDC motor, foldable, peak 4.5HP',
+      price: 39999,
+      dailyUse: 45,
+      flex: 15,
+      longevity: 6,
+      joy: 55,
+      why: 'Below the 3+ CHP continuous bar your own treadmill research set. The closest real match at this price.',
+      source: 'Retail listings',
+      img: null,
+      icon: 'treadmill',
+    },
+    {
+      id: 'fender-strat',
+      name: 'Fender Player Stratocaster',
+      blurb: 'Electric, SSS pickups',
+      price: 85500,
+      dailyUse: 40,
+      flex: 55,
+      longevity: 6,
+      joy: 70,
+      why: 'Only pays off if practice actually happens. No existing habit to build on yet.',
+      source: 'Retail listings',
+      img: null,
+      icon: 'guitar',
+    },
+    {
+      id: 'roland-td17',
+      name: 'Roland TD-17KV-L',
+      blurb: 'Electronic drum kit, with stand',
+      price: 143305,
+      dailyUse: 35,
+      flex: 50,
+      longevity: 6,
+      joy: 72,
+      why: 'Second most expensive item here with no existing practice habit behind it yet.',
+      source: 'Retail listings, MRP',
+      img: 'https://www.bajaao.com/cdn/shop/files/roland-electronic-drum-kits-roland-td-17kv-l-electronic-drum-kit-with-mds-compact-drum-stand-12061771268168.jpg?v=1689700729&width=1000',
+      icon: 'drums',
+    },
+    {
+      id: 'at-turntable',
+      name: 'Audio-Technica AT-LP120X',
+      blurb: 'Direct drive, USB, built-in phono preamp',
+      price: 49900,
+      dailyUse: 35,
+      flex: 45,
+      longevity: 6,
+      joy: 65,
+      why: 'A deliberate ritual, not background listening. Needs an actual record collection to be worth it.',
+      source: 'Retail listings',
+      img: 'https://files.vplak.com/80-images/audio-technica/AT-LP120XUSB/black/image-1.jpg',
+      icon: 'turntable',
+    },
+    {
+      id: 'marshall-stanmore',
+      name: 'Marshall Stanmore III',
+      blurb: '80W, Bluetooth 5.2, RCA input',
+      price: 41999,
+      dailyUse: 60,
+      flex: 55,
+      longevity: 6,
+      joy: 65,
+      why: 'High daily use if it becomes the default speaker. The turntable above only matters once this exists.',
+      source: 'Flipkart, MRP',
+      img: 'https://rukminim2.flixcart.com/image/832/832/xif0q/speaker/k/5/e/-original-imah3h9uftt4yznq.jpeg?q=90',
+      icon: 'speaker',
+    },
+  ];
+
+  ITEMS.forEach((it) => {
+    it.worthIt = Math.round(
+      0.40 * it.dailyUse +
+      0.25 * (it.longevity / MAX_LONGEVITY * 100) +
+      0.20 * it.joy +
+      0.15 * it.flex
+    );
+    it.costPerYear = Math.round(it.price / it.longevity);
+    it.costPerMonth = Math.round(it.costPerYear / 12);
+    it.costPerWeek = Math.round(it.costPerYear / 52);
+    it.costPerDay = Math.round(it.costPerYear / 365);
+    it.perJoyPoint = Math.round(it.price / it.joy);
+  });
+
+  function bandFor(score) {
+    if (score >= 70) return 'high';
+    if (score >= 50) return 'mid';
+    return 'low';
+  }
+
+  function inr(n) {
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  function reduceMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function buildRow(item) {
+    const li = document.createElement('li');
+    li.className = 'row';
+    li.dataset.id = item.id;
+
+    const thumbInner = item.img
+      ? `<img src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-failed')">${ICONS[item.icon]}`
+      : ICONS[item.icon];
+
+    li.innerHTML = `
+      <button class="row-toggle" aria-expanded="false" aria-controls="panel-${item.id}">
+        <span class="row-rank" aria-hidden="true"></span>
+        <span class="thumb${item.img ? '' : ' icon-only'}">${thumbInner}</span>
+        <span class="row-main">
+          <span class="row-name">${item.name}</span>
+          <span class="row-blurb">${item.blurb}</span>
+        </span>
+        <span class="row-ring">
+          <svg class="ring" viewBox="0 0 80 80">
+            <circle class="ring-track" cx="40" cy="40" r="34"></circle>
+            <circle class="ring-value" cx="40" cy="40" r="34"></circle>
+          </svg>
+          <span class="ring-label">${item.worthIt}</span>
+        </span>
+        <span class="row-price">
+          <span class="price-value">${inr(item.price)}</span>
+          <span class="price-sub">${inr(item.costPerYear)}/yr</span>
+        </span>
+        <span class="row-chevron" aria-hidden="true">+</span>
+      </button>
+      <div class="row-panel" id="panel-${item.id}">
+        <p class="row-why">${item.why}</p>
+        <div class="metric-bars">
+          <div class="metric metric-daily">
+            <span class="metric-label">Daily use</span>
+            <span class="bar"><i style="width:${item.dailyUse}%"></i></span>
+            <span class="metric-value">${item.dailyUse}</span>
+          </div>
+          <div class="metric metric-flex">
+            <span class="metric-label">Flex</span>
+            <span class="bar"><i style="width:${item.flex}%"></i></span>
+            <span class="metric-value">${item.flex}</span>
+          </div>
+          <div class="metric metric-joy">
+            <span class="metric-label">Joy</span>
+            <span class="bar"><i style="width:${item.joy}%"></i></span>
+            <span class="metric-value">${item.joy}</span>
+          </div>
+        </div>
+        <div class="extra-stats">
+          <div><span>Longevity</span><b>${item.longevity} yrs</b></div>
+          <div><span>Cost per day</span><b>${inr(item.costPerDay)}</b></div>
+          <div><span>Cost per week</span><b>${inr(item.costPerWeek)}</b></div>
+          <div><span>Cost per month</span><b>${inr(item.costPerMonth)}</b></div>
+          <div><span>Cost per year</span><b>${inr(item.costPerYear)}</b></div>
+          <div><span>Per joy point</span><b>${inr(item.perJoyPoint)}</b></div>
+        </div>
+        <p class="row-source">${item.source}, 17 Sep 2026</p>
+      </div>
+    `;
+
+    li.querySelector('.row-toggle').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+    });
+
+    return li;
+  }
+
+  function initRings() {
+    const r = 34;
+    const c = 2 * Math.PI * r;
+    document.querySelectorAll('.row').forEach((row) => {
+      const item = ITEMS.find((i) => i.id === row.dataset.id);
+      const circle = row.querySelector('.ring-value');
+      circle.style.strokeDasharray = `${c}`;
+      circle.style.strokeDashoffset = `${c}`;
+      circle.style.stroke = bandColor(bandFor(item.worthIt));
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.querySelectorAll('.row').forEach((row) => {
+        const item = ITEMS.find((i) => i.id === row.dataset.id);
+        const circle = row.querySelector('.ring-value');
+        circle.style.strokeDashoffset = `${c * (1 - item.worthIt / 100)}`;
+      });
+    }));
+  }
+
+  const SORT_ACCESSORS = {
+    worth: (it) => it.worthIt,
+    price: (it) => it.price,
+    daily: (it) => it.dailyUse,
+    flex: (it) => it.flex,
+    joy: (it) => it.joy,
+    longevity: (it) => it.longevity,
+    costPerYear: (it) => it.costPerYear,
+    perJoyPoint: (it) => it.perJoyPoint,
+  };
+  const DEFAULT_DIR = {
+    worth: -1, price: 1, daily: -1, flex: -1, joy: -1,
+    longevity: -1, costPerYear: 1, perJoyPoint: 1,
+  };
+
+  let sortKey = 'worth';
+  let sortDir = -1;
+
+  function updateSortDirButton() {
+    const btn = document.getElementById('sortDir');
+    btn.textContent = sortDir === -1 ? '↓' : '↑';
+    btn.setAttribute('aria-label', sortDir === -1 ? 'Sorted highest to lowest' : 'Sorted lowest to highest');
+  }
+
+  function updateRanks() {
+    document.querySelectorAll('#ledger .row').forEach((row, i) => {
+      row.querySelector('.row-rank').textContent = i + 1;
+    });
+  }
+
+  function applySort(animate) {
+    const list = document.getElementById('ledger');
+    const rows = Array.from(list.querySelectorAll('.row'));
+    const firstRects = new Map();
+
+    if (animate && !reduceMotion()) {
+      rows.forEach((row) => firstRects.set(row.dataset.id, row.getBoundingClientRect()));
+    }
+
+    const sorted = [...ITEMS].sort(
+      (a, b) => (SORT_ACCESSORS[sortKey](a) - SORT_ACCESSORS[sortKey](b)) * sortDir
+    );
+    sorted.forEach((item) => {
+      list.appendChild(list.querySelector(`.row[data-id="${item.id}"]`));
+    });
+    updateRanks();
+
+    if (animate && !reduceMotion()) {
+      rows.forEach((row) => {
+        const first = firstRects.get(row.dataset.id);
+        const last = row.getBoundingClientRect();
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx || dy) {
+          row.style.transition = 'none';
+          row.style.transform = `translate(${dx}px, ${dy}px)`;
+          row.getBoundingClientRect();
+          row.style.transition = 'transform 420ms cubic-bezier(.2,.8,.2,1)';
+          row.style.transform = '';
+        }
+      });
+    }
+  }
+
+  document.getElementById('sortSelect').addEventListener('change', (e) => {
+    sortKey = e.target.value;
+    sortDir = DEFAULT_DIR[sortKey];
+    updateSortDirButton();
+    applySort(true);
+  });
+
+  document.getElementById('sortDir').addEventListener('click', () => {
+    sortDir *= -1;
+    updateSortDirButton();
+    applySort(true);
+  });
+
+  document.querySelectorAll('.view-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      document.querySelectorAll('.view-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      const list = document.getElementById('ledger');
+      list.classList.toggle('view-grid', view === 'grid');
+      list.classList.toggle('view-list', view === 'list');
+    });
+  });
+
+  const THEME_KEY = 'wishlist-ledger-theme';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('themeToggle');
+    btn.textContent = theme === 'light' ? '☀' : '☾';
+    btn.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    document.querySelector('meta[name="theme-color"]').setAttribute(
+      'content', theme === 'light' ? '#F5F3EE' : '#12141A'
+    );
+    document.querySelectorAll('.row').forEach((row) => {
+      const item = ITEMS.find((i) => i.id === row.dataset.id);
+      row.querySelector('.ring-value').style.stroke = bandColor(bandFor(item.worthIt));
+    });
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+
+  const INCOME_KEY = 'wishlist-ledger-income';
+  const GENERIC_INCOME_DEFAULT = 50000;
+  const NEEDS_SHARE = 0.50;
+  const WANTS_SHARE = 0.30;
+  const SAVINGS_SHARE = 0.20;
+
+  function updateIncomeReadout() {
+    const income = Number(document.getElementById('incomeInput').value) || 1;
+    const totalDamage = ITEMS.reduce((s, i) => s + i.price, 0);
+    const totalMonths = totalDamage / income;
+    const years = Math.floor(totalMonths / 12);
+    const months = Math.round(totalMonths % 12);
+    document.getElementById('incomeReadout').textContent =
+      years > 0 ? `${years} yr ${months} mo` : `${months} mo`;
+  }
+
+  document.getElementById('incomeInput').addEventListener('input', (e) => {
+    localStorage.setItem(INCOME_KEY, e.target.value);
+    updateIncomeReadout();
+  });
+
+  function init() {
+    applyTheme(localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark');
+    const list = document.getElementById('ledger');
+    ITEMS.forEach((item) => list.appendChild(buildRow(item)));
+    initRings();
+    updateSortDirButton();
+    applySort(false);
+
+    const totalDamage = ITEMS.reduce((s, i) => s + i.price, 0);
+    const totalPerMonth = ITEMS.reduce((s, i) => s + i.costPerMonth, 0);
+    const totalPerDay = ITEMS.reduce((s, i) => s + i.costPerDay, 0);
+    document.getElementById('totalDamage').textContent = inr(totalDamage);
+    document.getElementById('totalPerMonth').textContent = inr(totalPerMonth);
+    document.getElementById('totalPerDay').textContent = inr(totalPerDay);
+
+    const requiredIncome = totalPerMonth / WANTS_SHARE;
+    document.getElementById('requiredIncome').textContent = inr(requiredIncome);
+    document.getElementById('affordNeeds').textContent = inr(requiredIncome * NEEDS_SHARE);
+    document.getElementById('affordWants').textContent = inr(totalPerMonth);
+    document.getElementById('affordSavings').textContent = inr(requiredIncome * SAVINGS_SHARE);
+
+    document.getElementById('incomeInput').value = localStorage.getItem(INCOME_KEY) || GENERIC_INCOME_DEFAULT;
+    updateIncomeReadout();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
